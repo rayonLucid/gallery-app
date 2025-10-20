@@ -6,9 +6,9 @@
     <div class="swiper-wrapper">
       <div class="swiper-slide" *ngFor="let image of galleryImages">
         <div class="slide">
-          <img [src]="image.url" [alt]="image.caption"  (error)="onImageError($event)" />
+          <img [src]="image.url" [alt]="image.caption" style="height: 60vh;width:fit-content"  (error)="onImageError($event)" />
 
-          <div class="caption">{{ image.caption }}</div>
+          <!-- <div class="caption">{{ image.caption }}</div> -->
         </div>
       </div>
     </div>
