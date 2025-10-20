@@ -4,11 +4,13 @@
   <!-- Swiper Container -->
   <div class="swiper myGallery">
     <div class="swiper-wrapper">
-      <div class="swiper-slide" *ngFor="let image of galleryImages">
+      <div class="swiper-slide" *ngFor="let item of galleryImages">
         <div class="slide">
-          <img [src]="image.url" [alt]="image.caption" style="height: 60vh;width:fit-content"  (error)="onImageError($event)" />
+      <ng-container [ngSwitch]="item.type">
+        <img *ngSwitchCase="'image'" [src]="item.url"  [alt]="item.caption" />
+        <video *ngSwitchCase="'video'" [src]="item.url" controls preload="metadata"></video>
+      </ng-container>
 
-          <!-- <div class="caption">{{ image.caption }}</div> -->
         </div>
       </div>
     </div>
@@ -21,18 +23,21 @@
 
   <!-- Thumbnails -->
   <div class="thumbs">
-    <div class="thumb" *ngFor="let image of galleryImages" (click)="openModal(previewTemplate, image)">
-      <img [src]="image.url" [alt]="image.caption" />
+    <div class="thumb" *ngFor="let item of galleryImages" (click)="openModal(previewTemplate, item)">
+       <ng-container [ngSwitch]="item.type">
+        <img *ngSwitchCase="'image'" [src]="item.url" [alt]="item.caption" />
+        <video *ngSwitchCase="'video'" [src]="item.url" controls preload="metadata"></video>
+      </ng-container>
     </div>
   </div>
 
    <ng-template #previewTemplate>
     <div class="modal-body text-center">
-      <img
-        *ngIf="selectedImage"
-        [src]="selectedImage.url"
-        class="img-fluid rounded shadow-lg"
-      />
+
+        <ng-container [ngSwitch]="selectedImage.type">
+        <img *ngSwitchCase="'image'" [src]="selectedImage.url" [alt]="selectedImage.caption" />
+        <video *ngSwitchCase="'video'" [src]="selectedImage.url"  style="width: 100%;" controls preload="metadata"></video>
+      </ng-container>
       <p class="mt-2">{{ selectedImage?.caption }}</p>
       <button class="btn btn-outline-dark mt-3" (click)="closeModal()">Close</button>
     </div>
