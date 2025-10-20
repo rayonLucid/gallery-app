@@ -1,45 +1,48 @@
 <div class="gallery-container">
-  <h2 class="title">Photo Gallery</h2>
+  <h2 class="title">Photo & Video Gallery</h2>
 
-  <!-- Swiper Container -->
-  <div class="swiper myGallery">
-    <div class="swiper-wrapper">
-      <div class="swiper-slide" *ngFor="let item of galleryImages">
-        <div class="slide">
-      <ng-container [ngSwitch]="item.type">
-        <img *ngSwitchCase="'image'" [src]="item.url"  [alt]="item.caption" />
-        <video *ngSwitchCase="'video'" [src]="item.url" controls preload="metadata"></video>
-      </ng-container>
+  <div class="main-view" [ngClass]="animationClass">
+    <button class="nav-btn prev" (click)="prevMedia()">
+      <span>&lt;</span>
+    </button>
 
-        </div>
-      </div>
-    </div>
+    <ng-container [ngSwitch]="selectedItem.type">
+      <img
+        *ngSwitchCase="'image'"
+        [src]="selectedItem.url"
+        [alt]="selectedItem.caption"
+        (error)="onImageError($event)"
+      />
+      <video
+        *ngSwitchCase="'video'"
+        #mainVideo
+        [src]="selectedItem.url"
+        preload="metadata"
+        autoplay
+        muted
+        controls
+      ></video>
+    </ng-container>
 
-    <!-- Pagination & Navigation -->
-    <div class="swiper-pagination"></div>
-    <div class="swiper-button-next"></div>
-    <div class="swiper-button-prev"></div>
+    <button class="nav-btn next" (click)="nextMedia()">
+      <span>&gt;</span>
+    </button>
+
+    <p class="caption">{{ selectedItem.caption }}</p>
   </div>
 
   <!-- Thumbnails -->
   <div class="thumbs">
-    <div class="thumb" *ngFor="let item of galleryImages" (click)="openModal(previewTemplate, item)">
-       <ng-container [ngSwitch]="item.type">
+    <div
+      class="thumb"
+      *ngFor="let item of galleryImages; let i = index"
+      (click)="selectMedia(item, i)"
+      [class.active]="i === currentIndex"
+    >
+      <ng-container [ngSwitch]="item.type">
         <img *ngSwitchCase="'image'" [src]="item.url" [alt]="item.caption" />
-        <video *ngSwitchCase="'video'" [src]="item.url" controls preload="metadata"></video>
+        <video *ngSwitchCase="'video'" [src]="item.url" muted preload="metadata"></video>
       </ng-container>
     </div>
   </div>
-
-   <ng-template #previewTemplate>
-    <div class="modal-body text-center">
-
-        <ng-container [ngSwitch]="selectedImage.type">
-        <img *ngSwitchCase="'image'" [src]="selectedImage.url" [alt]="selectedImage.caption" />
-        <video *ngSwitchCase="'video'" [src]="selectedImage.url"  style="width: 100%;" controls preload="metadata"></video>
-      </ng-container>
-      <p class="mt-2">{{ selectedImage?.caption }}</p>
-      <button class="btn btn-outline-dark mt-3" (click)="closeModal()">Close</button>
-    </div>
-  </ng-template>
 </div>

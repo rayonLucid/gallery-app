@@ -1,10 +1,10 @@
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, Component, OnInit, TemplateRef } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { BsModalRef, BsModalService } from 'ngx-bootstrap/modal';
-import Swiper,{ Autoplay, Navigation, Pagination } from 'swiper';
+
 import { environment } from '../environment';
 import { url } from 'inspector';
-import swiper from 'swiper';
+
 
 
 
@@ -15,11 +15,16 @@ import swiper from 'swiper';
 
   styleUrls: ['./app-gallery.component.scss']
 })
-export class AppGalleryComponent implements OnInit,AfterViewInit  {
+export class AppGalleryComponent implements OnInit,OnDestroy  {
 modalRef?: BsModalRef;
-  selectedImage?: any;
+  selectedItem?: any;
     galleryImages:any =[];
+    currentIndex = 0;
+    animationClass = '';
+     autoSlideInterval: any;
+  autoSlideDelay = environment.SlideSecondsConunt; // 4 seconds
 
+  @ViewChild('mainVideo') mainVideoRef!: ElementRef<HTMLVideoElement>;
   slideConfig = {
     slidesToShow: 1,
     slidesToScroll: 1,
@@ -29,55 +34,14 @@ modalRef?: BsModalRef;
     arrows: true,
     infinite: true,
   };
-  constructor(private modalService: BsModalService,private http: HttpClient) { }
-  ngAfterViewInit(): void {
-       // Initialize Swiper after view load
-    Swiper.use([Navigation, Pagination, Autoplay]);
-    new Swiper('.myGallery', {
-      slidesPerView: 1,
-      spaceBetween: 10,
-      loop: true,
-      autoplay: {
-        delay: 2500,
-        disableOnInteraction: false,
-      },
-      pagination: {
-        el: '.swiper-pagination',
-        clickable: true,
-      },
-      navigation: {
-        nextEl: '.swiper-button-next',
-        prevEl: '.swiper-button-prev',
-      },
-       on: {
-        slideChange: function () {
-          // Pause any video that’s not in the active slide
-          document.querySelectorAll<HTMLVideoElement>('.swiper-slide video').forEach(v => { v.pause(); });
-             const activeVideo = document.querySelector<HTMLVideoElement>('.swiper-slide-active video');
-              if (activeVideo) {
-          //  swiper.autoplay.stop();
-            activeVideo.muted = true;
-            activeVideo.play();
-         //   activeVideo.onended = () => swiper.autoplay.start();
-          } else {
-          //  swiper.autoplay.start();
-          }
-        }
-      }
-    });
+  constructor(private modalService: BsModalService,private http: HttpClient) {
 
-      const videos = document.querySelectorAll<HTMLVideoElement>('.swiper-slide video');
-    videos.forEach(video => {
-      video.addEventListener('play', () => {
-     //   swiper..stop();
-      });
-      video.addEventListener('pause', () => {
-     //   swiper.autoplay.start();
-      });
-      video.addEventListener('ended', () => {
-     //   swiper.autoplay.start();
-      });
-    });
+
+   }
+
+  ngAfterViewInit(): void {
+
+
 
   }
 getMediaType(url: string): 'image' | 'video' | 'unknown' {
@@ -95,52 +59,71 @@ getMediaType(url: string): 'image' | 'video' | 'unknown' {
 }
 
   ngOnInit(): void {
-
+  this.startAutoSlide();
   let NoOfImage =  environment.No_Of_Images
+     this.loadGalleryFiles(NoOfImage);
 
-
- Array.from({ length: NoOfImage }, async (_, i) => {
-  const fileName = `${i + 1}`;
-  let fileExt = 'jpg'; // or dynamic if needed
-  let ftype = this.getMediaType(`${fileName}.${fileExt}`);
-  let fileUrl = `assets/${fileName}.${fileExt}`;
-  let ImageExist =await this.fileExists(fileUrl)
-
-if(!ImageExist){
-
-
-  //try video files
-  fileExt = 'mp4';
-  fileUrl = `assets/${fileName}.${fileExt}`;
-
-  ImageExist =await this.fileExists(fileUrl)
-  if(ImageExist){
-    this.galleryImages.push({
-      url: fileUrl,
-      type: 'video'
-    });
   }
-}else{
-this.galleryImages.push({
-    url: fileUrl,
-    type: ftype
-  });
+
+    ngOnDestroy(): void {
+    this.stopAutoSlide();
+  }
+  async loadGalleryFiles(NoOfImage: number): Promise<void> {
+  const results: { url: string; type: string }[] = [];
+
+  for (let i = 1; i <= NoOfImage; i++) {
+    let fileExt = 'jpg';
+    let fileUrl = `assets/${i}.${fileExt}`;
+
+    const imageExists = await this.fileExists(fileUrl);
+
+    if (imageExists) {
+      results.push({
+        url: fileUrl,
+        type: this.getMediaType(fileUrl)
+      });
+    } else {
+      // Try mp4 next
+      fileExt = 'mp4';
+      fileUrl = `assets/${i}.${fileExt}`;
+      const videoExists = await this.fileExists(fileUrl);
+
+      if (videoExists) {
+        results.push({
+          url: fileUrl,
+          type: 'video'
+        });
+      }
+    }
+  }
+
+  this.galleryImages = results;
+   this.selectMedia(this.galleryImages[this.currentIndex], this.currentIndex);
+  console.log('Gallery Loaded:', this.galleryImages);
 }
-//console.log(this.galleryImages);
-});
 
+  nextMedia() {
+    const nextIndex = (this.currentIndex + 1) % this.galleryImages.length;
+    this.selectMedia(this.galleryImages[nextIndex], nextIndex, 'next');
   }
+
+  prevMedia() {
+    const prevIndex =
+      (this.currentIndex - 1 + this.galleryImages.length) % this.galleryImages.length;
+    this.selectMedia(this.galleryImages[prevIndex], prevIndex, 'prev');
+  }
+
 
 onImageError(event: Event) {
   const imgElement = event.target as HTMLImageElement;
   console.log('Image load error for URL:', imgElement.src);
-  imgElement.src = 'asseets/11.mp4'; // your default fallback image
+  imgElement.src = ''; // your default fallback image
 }
 
 
     openModal(template: TemplateRef<any>, image: any) {
      // console.log(image)
-    this.selectedImage = image;
+    this.selectedItem = image;
     this.modalRef = this.modalService.show(template, { class: 'modal-lg' });
   }
 
@@ -148,15 +131,74 @@ onImageError(event: Event) {
     this.modalRef?.hide();
   }
 
-   fileExists(url: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-
-      xhr.open('HEAD', url, true);
-      xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 400);
-      xhr.onerror = () => resolve(false);
-      xhr.send();
-    });
+   async fileExists(url: string): Promise<boolean> {
+   try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch {
+    return false;
+  }
   }
 
+   stopAllVideos() {
+    const videos = document.querySelectorAll<HTMLVideoElement>('video');
+    videos.forEach(v => v.pause());
+  }
+//  selectMedia(item: any, index: number) {
+//     this.stopAllVideos();
+//     this.currentIndex = index;
+//     this.selectedItem = item;
+
+//     // Auto-play video if selected
+//     if (item.type === 'video') {
+//       setTimeout(() => {
+//         const videoEl = this.mainVideoRef?.nativeElement;
+//         if (videoEl) {
+//           videoEl.muted = true;
+//           videoEl.play().catch(() => console.log('Autoplay prevented'));
+//         }
+//       }, 100);
+//     }
+//   }
+  selectMedia(item: any, index: number, direction: 'next' | 'prev' = 'next') {
+    this.stopAllVideos();
+    this.animationClass = direction === 'next' ? 'slide-left' : 'slide-right';
+
+    setTimeout(() => {
+      this.currentIndex = index;
+      this.selectedItem = item;
+
+      // Auto-play if video
+      if (item.type === 'video') {
+        setTimeout(() => {
+          const videoEl = this.mainVideoRef?.nativeElement;
+          if (videoEl) {
+            videoEl.muted = true;
+            videoEl.play().catch(() => console.log('Autoplay prevented'));
+          }
+        }, 150);
+      }
+
+      // Reset animation
+      setTimeout(() => (this.animationClass = ''), 400);
+    }, 50);
+  }
+
+
+    startAutoSlide() {
+    this.stopAutoSlide();
+    this.autoSlideInterval = setInterval(() => {
+      // only auto-slide if current item is not a playing video
+      const videoEl = this.mainVideoRef?.nativeElement;
+      if (this.selectedItem.type === 'video' && videoEl && !videoEl.paused) return;
+      this.nextMedia();
+    }, this.autoSlideDelay);
+  }
+
+  stopAutoSlide() {
+    if (this.autoSlideInterval) {
+      clearInterval(this.autoSlideInterval);
+      this.autoSlideInterval = null;
+    }
+  }
 }
