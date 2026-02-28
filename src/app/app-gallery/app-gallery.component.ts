@@ -68,24 +68,31 @@ getMediaType(url: string): 'image' | 'video' | 'unknown' {
     ngOnDestroy(): void {
     this.stopAutoSlide();
   }
-  async loadGalleryFiles(NoOfImage: number): Promise<void> {
+async loadGalleryFiles(NoOfImage: number): Promise<void> {
   const results: { url: string; type: string }[] = [];
+  const imageExtensions = ['jpg', 'jpeg'];
 
   for (let i = 1; i <= NoOfImage; i++) {
-    let fileExt = 'jpg';
-    let fileUrl = `assets/${i}.${fileExt}`;
+    let mediaFound = false;
 
-    const imageExists = await this.fileExists(fileUrl);
+    // Try image formats first
+    for (const ext of imageExtensions) {
+      const fileUrl = `assets/${i}.${ext}`;
+      const imageExists = await this.fileExists(fileUrl);
 
-    if (imageExists) {
-      results.push({
-        url: fileUrl,
-        type: this.getMediaType(fileUrl)
-      });
-    } else {
-      // Try mp4 next
-      fileExt = 'mp4';
-      fileUrl = `assets/${i}.${fileExt}`;
+      if (imageExists) {
+        results.push({
+          url: fileUrl,
+          type: this.getMediaType(fileUrl)
+        });
+        mediaFound = true;
+        break;
+      }
+    }
+
+    // If no image found, try video
+    if (!mediaFound) {
+      const fileUrl = `assets/${i}.mp4`;
       const videoExists = await this.fileExists(fileUrl);
 
       if (videoExists) {
@@ -98,10 +105,13 @@ getMediaType(url: string): 'image' | 'video' | 'unknown' {
   }
 
   this.galleryImages = results;
-   this.selectMedia(this.galleryImages[this.currentIndex], this.currentIndex);
-  console.log('Gallery Loaded:', this.galleryImages);
-}
 
+  if (this.galleryImages.length > 0) {
+    this.selectMedia(this.galleryImages[this.currentIndex], this.currentIndex);
+  }
+
+  //console.log('Gallery Loaded:', this.galleryImages);
+}
   nextMedia() {
     const nextIndex = (this.currentIndex + 1) % this.galleryImages.length;
     this.selectMedia(this.galleryImages[nextIndex], nextIndex, 'next');

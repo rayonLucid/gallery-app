@@ -1,6 +1,6 @@
 export const environment = {
   API_BASE_URL:"https://localhost:7212/api",
-  No_Of_Images:11,
+  No_Of_Images:30,
   SlideSecondsConunt:5000,
   production: false
 }
